@@ -14,8 +14,33 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserProfile
-        fields = ['user', 'bio', 'location', 'profile_picture', 'join_date']
+        fields = ['id', 'user', 'bio', 'location', 'profile_picture', 'join_date']
+        read_only_fields = ['id', 'user', 'join_date']
 
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source='user.email', required=False)
+    first_name = serializers.CharField(source='user.first_name', required=False)
+    last_name = serializers.CharField(source='user.last_name', required=False)
+    
+    class Meta:
+        model = UserProfile
+        fields = ['bio', 'location', 'profile_picture', 'email', 'first_name', 'last_name']
+    
+    def update(self, instance, validated_data):
+        # Update user fields if present
+        user_data = validated_data.pop('user', {})
+        if user_data:
+            user = instance.user
+            for attr, value in user_data.items():
+                setattr(user, attr, value)
+            user.save()
+        
+        # Update profile fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        return instance
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
     
